@@ -1,0 +1,36 @@
+---
+title: HIDP Protocol Handshake
+---
+sequenceDiagram
+    participant H as Host (Windows)
+    participant S as btk_server.py
+
+    Note over H,S: === HID Control Channel (PSM 17) ===
+    H->>S: HIDP_GET_PROTOCOL (0x40 | transaction)
+    S->>H: HIDP_GET_PROTOCOL_RSP (0x80 | transaction, protocol=1)
+
+    H->>S: HIDP_SET_PROTOCOL (0x50 | transaction, protocol=1)
+    S->>H: HANDSHAKE (0xF0, 0x00)
+
+    H->>S: HIDP_GET_REPORT (0x20 | transaction, type=1, id=0)
+    S->>H: HANDSHAKE_ERR_UNSUPPORTED (0xF0, 0x03)
+
+    H->>S: HIDP_SET_REPORT (0x30 | transaction, type=2, id=0)
+    S->>H: HANDSHAKE (0xF0, 0x00)
+
+    H->>S: HIDP_GET_IDLE (0x60 | transaction)
+    S->>H: HIDP_GET_IDLE_RSP (0x80 | transaction, idle=0)
+
+    H->>S: HIDP_SET_IDLE (0x70 | transaction, idle=0)
+    S->>H: HANDSHAKE (0xF0, 0x00)
+
+    Note over H,S: === HID Interrupt Channel (PSM 19) ===
+    Note over H,S: Input Report Format:
+    Note over H,S: [0xA1, 1, modifier, 0, scancode1..6, 0, 0]
+    Note over H,S: modifier bits: [CTRL|SHIFT|ALT|WIN|...]
+
+    S->>H: Input Report: key 'a' down (mod=0, scancode=4)
+    S->>H: Input Report: key 'a' up (all zeroes)
+
+    S->>H: Input Report: key SHIFT+9 down (mod=0x02, scancode=38)
+    S->>H: Input Report: key SHIFT+9 up

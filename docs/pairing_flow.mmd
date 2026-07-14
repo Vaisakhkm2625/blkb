@@ -1,0 +1,46 @@
+---
+title: Pairing Flow
+---
+sequenceDiagram
+    participant H as Host (Windows)
+    participant B as BlueZ/bluetoothd
+    participant A as Agent (btk_server)
+    participant S as L2CAP Sockets
+
+    Note over H,S: 1. Discovery
+    H->>H: Scan for devices
+    H->>B: Inquiry
+    B-->>H: EIR: name=Logitech_K380, UUIDs=(HID, Audio, ...)
+
+    Note over H,S: 2. SDP Query (synchronous with pairing)
+    H->>B: L2CAP Connect (PSM 1)
+    B-->>H: Accept
+    H->>B: SDP ServiceSearch
+    B-->>H: 17 service records
+    H->>B: SDP AttributeRequest (HID record)
+    B-->>H: HID SDP attributes
+
+    Note over H,S: 3. IO Capability Exchange
+    H->>B: IO Capability Request<br/>(DisplayYesNo, MITM required)
+    B->>A: RequestConfirmation()
+    A-->>B: auto-confirm
+    B->>A: RequestPasskey()
+    A-->>B: 0
+    B-->>H: IO Capability Response<br/>(DisplayOnly, no MITM)
+
+    Note over H,S: 4. SSP - Just Works
+    H->>B: User Confirmation Request (passkey)
+    B->>A: auto-confirm (Just Works)
+    B-->>H: User Confirmation Reply
+    H->>B: Simple Pairing Complete
+
+    Note over H,S: 5. HID Connection
+    H->>B: L2CAP Connect (PSM 17 - HID Control)
+    S-->>B: Already listening
+    B-->>H: Route to S
+    S-->>H: HIDP handshake
+
+    H->>B: L2CAP Connect (PSM 19 - HID Interrupt)
+    S-->>B: Already listening
+    B-->>H: Route to S
+    S-->>H: Ready for input reports

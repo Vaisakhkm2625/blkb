@@ -1,0 +1,43 @@
+---
+title: BLKB System Architecture
+---
+sequenceDiagram
+    participant C as blkb_client.py
+    participant S as btk_server.py<br/>(GLib main loop)
+    participant D as D-Bus<br/>org.bluez
+    participant HCI as Bluetooth<br/>HCI layer
+    participant H as Host (Windows)
+
+    Note over C,S: Unix socket /tmp/blkb.sock
+    C->>S: type hello\n
+    S-->>C: OK\n
+
+    Note over S,H: L2CAP PSM 17 (Control) + PSM 19 (Interrupt)
+    S->>S: queue command
+    S->>S: type_next(): send_key_down(mod, scancode)
+    S->>S: type_up(): send_key_up()
+    S->>H: HID Input Report (PSM 19)
+
+    Note over S,D: Setup Phase
+    S->>D: org.bluez.Adapter1.Set(Powered, Discoverable, Pairable)
+    S->>D: org.bluez.AgentManager1.RegisterAgent(DisplayOnly)
+    S->>D: org.bluez.ProfileManager1.RegisterProfile(HID UUID)
+    S->>HCI: hciconfig class 0x0025C0
+
+    Note over H,S: Pairing Phase
+    H->>HCI: L2CAP Connection Request (PSM 1 for SDP)
+    HCI->>S: IO Capability Request
+    S->>HCI: IO Capability (DisplayOnly)
+    H->>HCI: SDP ServiceSearch Request
+    S->>HCI: SDP Response (HID record + others)
+    H->>HCI: Simple Pairing Complete (Just Works)
+
+    Note over H,S: HID Connection Phase
+    H->>HCI: L2CAP Connection Request (PSM 17)
+    S->>HCI: Accept
+    H->>S: HIDP GET_REPORT / SET_PROTOCOL
+    S->>H: HIDP Response
+
+    H->>HCI: L2CAP Connection Request (PSM 19)
+    S->>HCI: Accept
+    S->>H: HID Input Reports (keystrokes)

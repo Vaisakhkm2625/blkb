@@ -1,0 +1,44 @@
+---
+title: Bluetooth HID Protocol Stack
+---
+block-beta
+    columns 3
+    block:client["blkb_client.py"]:1
+        columns 1
+        c1["type hello"]
+        c2["key enter"]
+        c3["mod ctrl r"]
+    end
+    block:separator[""]:1
+        s1["Unix Socket<br/>/tmp/blkb.sock"]
+    end
+    block:server["btk_server.py"]:1
+        columns 1
+        s2["Command Parser<br/>type / key / mod / delay"]
+        s3["GLib Timer Queue<br/>type_next() → type_up()"]
+        s4["HID Report Builder<br/>send_key_state()"]
+    end
+
+    block:l2cap["L2CAP Layer"]:3
+        columns 3
+        l1["PSM 1<br/>SDP Service Discovery"]
+        l2["PSM 17<br/>HID Control<br/>GET/SET_REPORT"]
+        l3["PSM 19<br/>HID Interrupt<br/>Input Reports"]
+    end
+
+    block:hci["HCI Layer<br/>(BlueZ / Kernel)"]:3
+    end
+
+    block:radio["BR/EDR Radio"]:3
+    end
+
+    block:host["Windows Host"]:3
+        columns 3
+        h1["SDP<br/>ServiceSearch"]
+        h2["HIDP<br/>Protocol Handshake"]
+        h3["HID Minidriver<br/>→ Keyboard Input"]
+    end
+
+    client --> separator --> server
+    server --> l2cap
+    l2cap --> hci --> radio --> host
