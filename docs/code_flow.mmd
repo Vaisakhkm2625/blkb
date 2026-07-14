@@ -2,60 +2,52 @@
 title: BLKB Server Internal Flow
 ---
 stateDiagram-v2
-    state "GLib Main Loop" as GLIB {
-        [*] --> Setup
+    state "GLib Main Loop" as GLIB
+    [*] --> Setup
 
-        state Setup {
-            setup_bt_device() --> register_agent()
-            register_agent() --> register_sdp_record()
-            register_sdp_record() --> hciconfig_class
-            hciconfig_class --> StartListening
-        }
-
-        state StartListening {
-            listen_psm_17 --> listen_psm_19
-            listen_psm_19 --> listen_unix_socket
-            listen_unix_socket --> Waiting
-        }
-
-        state Waiting {
-            Waiting --> SDP_Arrives : incoming L2CAP PSM 1
-            Waiting --> Control_Arrives : incoming L2CAP PSM 17
-            Waiting --> Interrupt_Arrives : incoming L2CAP PSM 19
-            Waiting --> ClientCmd : Unix socket data
-            Waiting --> Pairing_Request : HCI event
-        }
-
-        state HID_Connected {
-            [*] --> BothChannels
-
-            state BothChannels {
-                Control_Channel --> Interrupt_Channel
-                Interrupt_Channel --> Ready
-            }
-
-            state Command_Queue {
-                [*] --> Idle
-                Idle --> Processing : command queued
-                Processing --> Processing : type_next() / type_up()
-                Processing --> Idle : OK sent
-            }
-
-            state Type_Sequence {
-                [*] --> KeyDown
-                KeyDown --> KeyUp : 50ms
-                KeyUp --> KeyDown : 50ms (next char)
-                KeyUp --> Done : last char
-                Done --> [*]
-            }
-
-            ClientCmd --> Command_Queue : parse "type/ key/ mod/ delay"
-            Command_Queue --> Type_Sequence : "type"
-            Command_Queue --> SingleKey : "key" or "mod"
-            Command_Queue --> WaitTimer : "delay"
-
-            Control_Arrives --> HIDP_Handler
-        }
-
-        Pairing_Request --> AgentHandler
+    state Setup {
+        [*] --> setup_bt_device
+        setup_bt_device --> register_agent
+        register_agent --> register_sdp
+        register_sdp --> set_class
+        set_class --> start_listening
     }
+
+    start_listening --> Waiting
+
+    state Waiting {
+        [*] --> listen_control
+        [*] --> listen_interrupt
+        [*] --> listen_socket
+    }
+
+    state HID_Connected {
+        [*] --> control_accepted
+        control_accepted --> interrupt_accepted
+        interrupt_accepted --> Ready
+
+        state "Command Queue" as CQ {
+            [*] --> Idle
+            Idle --> Processing : command arrives
+            Processing --> TypeSeq : "type"
+            Processing --> SingleKey : "key / mod"
+            Processing --> WaitTimer : "delay"
+            TypeSeq --> Idle : OK sent
+            SingleKey --> Idle : OK sent
+            WaitTimer --> Idle : OK sent
+        }
+
+        state "Type Sequence" as TS {
+            [*] --> KeyDown
+            KeyDown --> KeyUp : 50ms
+            KeyUp --> NextOrDone : 50ms
+            NextOrDone --> KeyDown : more chars
+            NextOrDone --> [*] : last char
+        }
+    }
+
+    Waiting --> HID_Connected : incoming L2CAP PSM 17
+    Waiting --> HID_Connected : incoming L2CAP PSM 19
+    listen_socket --> CQ : "type hello\\n"
+    control_accepted --> HIDP_Handler : HIDP messages
+    HIDP_Handler --> Ready
