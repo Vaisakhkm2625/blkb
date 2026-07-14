@@ -6,6 +6,8 @@ Emulate a Bluetooth HID keyboard from Linux. Pairs with a host (Windows, macOS, 
 
 ![Alt text](./docs/blkb_arch.png)
 
+(see other Architectural diagram on docs/)
+
 ## Files
 
 | File | Purpose |
