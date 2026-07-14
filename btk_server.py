@@ -368,14 +368,14 @@ class CommandServer:
         if action == "type":
             self.typing_text = self.unescape(args)
             self.typing_pos = 0
-            GLib.timeout_add(20, self.type_next)
+            GLib.timeout_add(50, self.type_next)
         elif action == "key":
             key_name = args.lower()
             if key_name in SPECIAL_KEYS:
                 scancode = keymap.keytable.get(SPECIAL_KEYS[key_name], 0)
                 if scancode:
                     self.hid.send_key_down(0, scancode)
-                    GLib.timeout_add(25, self.key_up_and_ok)
+                    GLib.timeout_add(50, self.key_up_and_ok)
                 else:
                     self.send_err(f"unknown_key:{key_name}")
                     GLib.idle_add(self.process_next)
@@ -393,7 +393,7 @@ class CommandServer:
                     scancode = keymap.keytable.get("KEY_" + sub[1].upper(), 0)
                 if scancode:
                     self.hid.send_key_down(mod_val, scancode)
-                    GLib.timeout_add(20, self.key_up_and_ok)
+                    GLib.timeout_add(50, self.key_up_and_ok)
                 else:
                     self.send_err(f"unknown_key:{key_name}")
                     GLib.idle_add(self.process_next)
@@ -442,7 +442,7 @@ class CommandServer:
 
     def type_up(self):
         self.hid.send_key_up()
-        GLib.timeout_add(20, self.type_next)
+        GLib.timeout_add(50, self.type_next)
         return False
 
     def delay_done(self):
