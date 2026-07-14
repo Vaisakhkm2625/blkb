@@ -10,6 +10,10 @@ import argparse
 SOCKET_PATH = "/tmp/blkb.sock"
 
 
+def escape_text(text):
+    return text.replace('\\', '\\\\').replace('\n', '\\n')
+
+
 class Client:
     def __init__(self, socket_path):
         self.sock = None
@@ -40,7 +44,7 @@ def cmd_type(text, socket_path):
     c = Client(socket_path)
     try:
         c.connect()
-        c.send_cmd(f"type {text}")
+        c.send_cmd(f"type {escape_text(text)}")
     except KeyboardInterrupt:
         pass
     finally:
@@ -80,7 +84,7 @@ def cmd_file(path, delay_min, delay_max, chunk_size, socket_path):
             chunk = text[i:i+chunk_size]
             progress = f"[{i}/{total}]"
             print(f"  {progress} sending chunk...")
-            if not c.send_cmd(f"type {chunk}"):
+            if not c.send_cmd(f"type {escape_text(chunk)}"):
                 break
             if i + chunk_size < total:
                 delay_ms = random.randint(delay_min * 1000, delay_max * 1000)
@@ -124,7 +128,7 @@ def cmd_direct(socket_path):
                 else:
                     print(f"  unknown: /{sub_cmd}")
             else:
-                c.send_cmd(f"type {line}")
+                c.send_cmd(f"type {escape_text(line)}")
     except (KeyboardInterrupt, EOFError):
         print()
     finally:

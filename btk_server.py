@@ -287,7 +287,8 @@ class HIDDevice:
         self.send_hid_report(state)
 
     def send_key_down(self, modifier, scancode):
-        self.interimstate[2] = [modifier, 0, 0, 0, 0, 0, 0, 0]
+        bits = [(modifier >> i) & 1 for i in range(7, -1, -1)]
+        self.interimstate[2] = bits
         self.interimstate[4] = scancode
         self.send_key_state()
 
@@ -357,21 +358,24 @@ class CommandServer:
         self.execute(cmd)
         return False
 
+    def unescape(self, text):
+        return text.replace('\\n', '\n').replace('\\\\', '\\')
+
     def execute(self, cmd):
         parts = cmd.split(' ', 1)
         action = parts[0]
         args = parts[1] if len(parts) > 1 else ""
         if action == "type":
-            self.typing_text = args
+            self.typing_text = self.unescape(args)
             self.typing_pos = 0
-            GLib.timeout_add(10, self.type_next)
+            GLib.timeout_add(20, self.type_next)
         elif action == "key":
             key_name = args.lower()
             if key_name in SPECIAL_KEYS:
                 scancode = keymap.keytable.get(SPECIAL_KEYS[key_name], 0)
                 if scancode:
                     self.hid.send_key_down(0, scancode)
-                    GLib.timeout_add(10, self.key_up_and_ok)
+                    GLib.timeout_add(25, self.key_up_and_ok)
                 else:
                     self.send_err(f"unknown_key:{key_name}")
                     GLib.idle_add(self.process_next)
@@ -389,7 +393,7 @@ class CommandServer:
                     scancode = keymap.keytable.get("KEY_" + sub[1].upper(), 0)
                 if scancode:
                     self.hid.send_key_down(mod_val, scancode)
-                    GLib.timeout_add(10, self.key_up_and_ok)
+                    GLib.timeout_add(20, self.key_up_and_ok)
                 else:
                     self.send_err(f"unknown_key:{key_name}")
                     GLib.idle_add(self.process_next)
@@ -438,7 +442,7 @@ class CommandServer:
 
     def type_up(self):
         self.hid.send_key_up()
-        GLib.timeout_add(10, self.type_next)
+        GLib.timeout_add(20, self.type_next)
         return False
 
     def delay_done(self):
