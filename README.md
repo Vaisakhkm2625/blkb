@@ -2,6 +2,8 @@
 
 Emulate a Bluetooth HID keyboard from Linux. Pairs with a host (Windows, macOS, etc.) as a keyboard peripheral. A CLI client sends keystrokes, file contents with random delays, or interactive input over a Unix socket.
 
+
+
 ## Architecture
 
 ![Alt text](./docs/blkb_arch.png)
@@ -52,6 +54,11 @@ sequenceDiagram
 
 
 (see other Architectural diagram on docs/)
+
+## Demo
+
+
+![blkb](./docs/demo-blkb.mp4)
 
 ## Files
 
